@@ -1,3 +1,5 @@
+package rekog;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -6,11 +8,14 @@ import com.amazonaws.services.rekognition.model.AmazonRekognitionException;
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
 import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.Image;
+import com.amazonaws.services.rekognition.model.Label;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.IOUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import facebook4j.Facebook;
+import facebook4j.FacebookFactory;
+import facebook4j.auth.AccessToken;
 
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
@@ -25,9 +30,10 @@ import java.util.Properties;
 public class FaceRekog {
     public static void main(String[] args) throws Exception {
 
+
         AWSCredentials credentials;
         try {
-            credentials = new ProfileCredentialsProvider().getCredentials();
+            credentials = new ProfileCredentialsProvider("chimbs").getCredentials();
         } catch (Exception e) {
             throw new AmazonClientException("Cannot load the credentials from the credential profiles file. "
                     + "Please make sure that your credentials file is at the correct "
@@ -51,6 +57,10 @@ public class FaceRekog {
 
 
         ByteBuffer bt;
+        detectLabels(credentials, bytes,"s3stuff");
+    }
+
+    public static void detectLabels(AWSCredentials credentials, byte[] bytes, String name) {
         DetectLabelsRequest request = new DetectLabelsRequest()
                 .withImage(new Image().withBytes(ByteBuffer.wrap(bytes)))
                 .withMaxLabels(10)
@@ -61,8 +71,12 @@ public class FaceRekog {
         rekognitionClient.setSignerRegionOverride("us-east-1");
         try {
             DetectLabelsResult result = rekognitionClient.detectLabels(request);
-            ObjectMapper objectMapper = new ObjectMapper();
-            System.out.println("Result = " + objectMapper.writeValueAsString(result));
+            System.out.println(String.format( "######%s######\n",name));
+            for (Label label : result.getLabels()) {
+                System.out.println(String.format("There is a %s in this with a confidence level of %s", label.getName(),
+                        label.getConfidence()));
+            }
+
         } catch (AmazonRekognitionException e) {
             e.printStackTrace();
         }
